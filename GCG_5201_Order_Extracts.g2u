@@ -1,0 +1,649 @@
+'This is a pretty beefy exporting program. Ideally, should work for anyone that needs this export format.
+'
+'Fields to include in OHD DT:
+'==============================================================================================================================	
+'Header:						(M = Mandatory, O = Optional)																								
+'	Company Code			= 4 chars	= M, M	= code of legal entity as in DGP	= DGP																
+'	Record Type				= 2 chars	= M, M	= fix: OH (=Orders on Hand)		= OH																
+'	Date of Transmission		= 8 chars	= M, M	= YYYYMMDD					= V.Ambient.Date														
+'	Date Type				= 1 char		= M, M	= fix: D (=daily)					= D																	
+'	Goods Issue Date		= 8 chars	= M, M	= YYYYMMDD					= ORDER_LINES.DATE_ITEM_PROM									
+'	Delivery Date			= 8 chars	= M, M	= YYYYMMDD					= ORDER_LINES.ITEM_PROM_DT									
+'	Backlog Flag				= 1 char		= M, M	= backlog = 'X'					= if (ORDER_LINES.DATE_ITEM_PROM <= V.Ambient.Date) 'X' else ''		
+'Organazational Data:																																	
+'	Sales Organization		= 20 chars	= O, M	=								= N/A																
+'	Plant					= 20 chars	= M, M	=								= N/A																
+'	Division					= 20 chars	= O, M	=								= N/A																
+'	Leadcenter				= 20 chars	= O, M	=								= N/A																
+'Customer Master:																																	
+'	Customer Key			= 20 chars	= M, M	=								= ORDER_HEADER.CUSTOMER										
+'	Customer Description		= 40 chars	= O, M	=								= CUSTOMER_MASTER.NAME_CUSTOMER							
+'	Parent Customer			= 20 chars	= O, M	=								= N/A																
+'	Customer Division		= 20 chars	= O, M	=								= N/A																
+'	Sales Channel			= 20 chars	= O, M	=								= N/A																
+'	Sales Area				= 20 chars	= O, M	=								= ORDER_HEADER.AREA											
+'	Sales District				= 20 chars	= O, M	=								= N/A																
+'	Concern					= 20 chars	= O, M	=								= N/A																
+'	Sector					= 20 chars	= O, M	=								= N/A																
+'	Segment				= 20 chars	= O, M	=								= ORDER_HEADER.BRANCH											
+'	Application				= 20 chars	= O, M	=								= N/A																
+'	Country					= 20 chars	= O, M	=								= ORDER_BILL_TO.COUNTRY										
+'	Region					= 20 chars	= O, M	=								= N/A																
+'	City						= 35 chars	= O, M	=								= ORDER_BILL_TO.CITY												
+'	Sales Office				= 20 chars	= O, O	=								= N/A																
+'	Inside Sales				= 20 chars	= O, M	=								= ORDER_HEADER.SALESPERSON									
+'	Inside Sales Descr.		= 40 chars	= O, M	=								= SALESPERSONS.NAME											
+'	Outdoor Sales			= 20 chars	= O, M	=								= N/A																
+'	Outdoor Sales Descr.		= 40 chars	= O, M	=								= N/A																
+'Material Master:																																		
+'	Material Key				= 25 chars	= M, M	=								= ORDER_LINES.PART												
+'	Material Description		= 40 chars	= O, M	=								= ORDER_LINES.DESCRIPTION										
+'	Leading Manufacturer		= 20 chars	= O, M	=								= PART_XREF_USER.VENDOR -> VENDOR_MASTER.NAME_VENDOR	
+'	Owner Plant				= 20 chars	= O, M	=								= N/A																
+'	Producing Type			= 20 chars	= O, M	=								= N/A																
+'	Country of Origin			= 20 chars	= O, M	=								= N/A																
+'	SOP Year				= 4 chars	= O, O	= YYYY							= N/A																
+'	Innovation Flag			= 20 chars	= O, O	=								= N/A																
+'	Basic Material			= 20 chars	= O, O	=								= N/A																
+'	Customer Mat. Numb.		= 40 chars	= O, O	=								= ORDER_LINES.CUSTOMER_PART									
+'Spare Fields:																																		
+'	SF1						= 20 chars	= O, O	= Sales Division					= N/A																
+'	SF2						= 20 chars	= O, O	=								= N/A																
+'	SF3						= 20 chars	= O, O	=								= N/A																
+'	SF4						= 20 chars	= O, O	=								= N/A																
+'	SF5						= 20 chars	= O, O	=								= N/A																
+'Key Figures:																																			
+'	Orders On Hand Value	= 21 chars	= M, M	=								= ORDER_LINES.EXTENSION											
+'	Currency				= 5 chars	= M, M	= ISO 4217 standard				= ORDER_LINES.ORDER_CURR_CD									
+'	Orders On Hand Quantity	= 21 chars	= M, M	=								= ORDER_LINES.QTY_BO											
+'	Sales Unit				= 3 chars	= M, M	= international ISO standard		= ORDER_LINES.UM_ORDER											
+'==============================================================================================================================	
+'Fields to include in TO DT:
+'==============================================================================================================================	
+'Header:						(M = Mandatory, O = Optional)																								
+'	Company Code			= 4 chars	= M, M	= code of legal entity as in DGP	= DGP																
+'	Record Type				= 2 chars	= M, M	= fix: TO (=Turnover)				= TO																
+'	Date of Transmission		= 8 chars	= M, M	= YYYYMMDD					= V.Ambient.Date														
+'	Date Type				= 1 char		= M, M	= fix: D (=daily)					= D																	
+'	Posting Date				= 8 chars	= M, M	= YYYYMMDD					= ORDER_HIST_LINE.DATE_INVOICE									
+'	Sales Type				= 1 char		= M, M	= default = ''						= Invoice = 'L', Credit Memo = 'M'										
+'Organazational Data:																																	
+'	Sales Organization		= 20 chars	= O, M	=								= N/A																
+'	Plant					= 20 chars	= M, M	=								= N/A																
+'	Division					= 20 chars	= O, M	=								= N/A																
+'	Leadcenter				= 20 chars	= O, M	=								= N/A																
+'Customer Master:																																	
+'	Customer Key			= 20 chars	= M, M	=								= ORDER_HIST_HEAD.CUSTOMER									
+'	Customer Description		= 40 chars	= O, M	=								= ORDER_HIST_HEAD.NAME_CUSTOMER							
+'	Parent Customer			= 20 chars	= O, M	=								= N/A																
+'	Customer Division		= 20 chars	= O, M	=								= N/A																
+'	Sales Channel			= 20 chars	= O, M	=								= N/A																
+'	Sales Area				= 20 chars	= O, M	=								= ORDER_HIST_HEAD.AREA											
+'	Sales District				= 20 chars	= O, M	=								= N/A																
+'	Concern					= 20 chars	= O, M	=								= N/A																
+'	Sector					= 20 chars	= O, M	=								= N/A																
+'	Segment				= 20 chars	= O, M	=								= ORDER_HIST_HEAD.BRANCH										
+'	Application				= 20 chars	= O, M	=								= N/A																
+'	Country					= 20 chars	= O, M	=								= ORDER_HIST_HEAD.COUNTRY										
+'	Region					= 20 chars	= O, M	=								= N/A																
+'	City						= 35 chars	= O, M	=								= ORDER_HIST_HEAD.CITY											
+'	Sales Office				= 20 chars	= O, O	=								= N/A																
+'	Inside Sales				= 20 chars	= O, M	=								= ORDER_HIST_LINE.SALESPERSON									
+'	Inside Sales Descr.		= 40 chars	= O, M	=								= SALESPERSONS.NAME											
+'	Outdoor Sales			= 20 chars	= O, M	=								= N/A																
+'	Outdoor Sales Descr.		= 40 chars	= O, M	=								= N/A																
+'Material Master:																																		
+'	Material Key				= 25 chars	= M, M	=								= ORDER_HIST_LINE.PART											
+'	Material Description		= 40 chars	= O, M	=								= ORDER_HIST_LINE.DESCRIPTION									
+'	Leading Manufacturer		= 20 chars	= O, M	=								= PART_XREF_USER.VENDOR -> VENDOR_MASTER.NAME_VENDOR	
+'	Owner Plant				= 20 chars	= O, M	=								= N/A																
+'	Producing Type			= 20 chars	= O, M	=								= N/A																
+'	Country of Origin			= 20 chars	= O, M	=								= N/A																
+'	SOP Year				= 4 chars	= O, O	= YYYY							= N/A																
+'	Innovation Flag			= 20 chars	= O, O	=								= N/A																
+'	Basic Material			= 20 chars	= O, O	=								= N/A																
+'	Customer Mat. Numb.		= 40 chars	= O, O	=								= ORDER_HIST_LINE.CUSTOMER_PART								
+'Spare Fields:																																		
+'	SF1						= 20 chars	= O, O	= Sales Division					= N/A																
+'	SF2						= 20 chars	= O, O	=								= N/A																
+'	SF3						= 20 chars	= O, O	=								= N/A																
+'	SF4						= 20 chars	= O, O	=								= N/A																
+'	SF5						= 20 chars	= O, O	=								= N/A																
+'Key Figures:																																			
+'	Sales Quantity			= 21 chars	= M, M	=								= ORDER_HIST_LINE.QTY_SHIPPED									
+'	Sales Unit				= 3 chars	= M, M	= international ISO standard		= ORDER_HIST_LINE.UM												
+'	Gross Sales				= 21 chars	= M, M	=								=
+'	Net Sales				= 21 chars	= M, M	=								=
+'	Material Costs			= 21 chars	= M, M	=								=
+'	Processing Costs			= 21 chars	= M, M	= if no split, total CoS in Mat costs	= ORDER_HIST_LINE.COST * ORDER_HIST_LINE.QTY_SHIPPED		
+'	Currency				= 5 chars	= M, M	= ISO 4217 standard				= ORDER_HIST_LINE.ORDER_CURRENCY							
+'==============================================================================================================================	
+'Fields to include in OE DT:
+'==============================================================================================================================	
+'Header:						(M = Mandatory, O = Optional)																								
+'	Company Code			= 4 chars	= M, M	= code of legal entity as in DGP	= DGP																
+'	Record Type				= 2 chars	= M, M	= fix: OE (=Orders Entry)			= OE																
+'	Date of Transmission		= 8 chars	= M, M	= YYYYMMDD					= V.Ambient.Date														
+'	Date Type				= 1 char		= M, M	= fix: D (=daily)					= D																	
+'	Posting Date				= 8 chars	= M, M	= YYYYMMDD					= ORDER_BOOKING.CHG_DATE										
+'Organazational Data:																																	
+'	Sales Organization		= 20 chars	= O, M	=								= N/A																
+'	Plant					= 20 chars	= M, M	=								= N/A																
+'	Division					= 20 chars	= O, M	=								= N/A																
+'	Leadcenter				= 20 chars	= O, M	=								= N/A																
+'Customer Master:																																	
+'	Customer Key			= 20 chars	= M, M	=								= ORDER_BOOKING.CUSTOMER										
+'	Customer Description		= 40 chars	= O, M	=								= CUSTOMER_MASTER.NAME_CUSTOMER							
+'	Parent Customer			= 20 chars	= O, M	=								= N/A																
+'	Customer Division		= 20 chars	= O, M	=								= N/A																
+'	Sales Channel			= 20 chars	= O, M	=								= N/A																
+'	Sales Area				= 20 chars	= O, M	=								= ORDER_HEADER.AREA											
+'	Sales District				= 20 chars	= O, M	=								= N/A																
+'	Concern					= 20 chars	= O, M	=								= N/A																
+'	Sector					= 20 chars	= O, M	=								= N/A																
+'	Segment				= 20 chars	= O, M	=								= ORDER_HEADER.BRANCH											
+'	Application				= 20 chars	= O, M	=								= N/A																
+'	Country					= 20 chars	= O, M	=								= ORDER_BILL_TO.COUNTRY										
+'	Region					= 20 chars	= O, M	=								= N/A																
+'	City						= 35 chars	= O, M	=								= ORDER_BILL_TO.CITY												
+'	Sales Office				= 20 chars	= O, O	=								= N/A																
+'	Inside Sales				= 20 chars	= O, M	=								= ORDER_LINES.SALESPERSON										
+'	Inside Sales Descr.		= 40 chars	= O, M	=								= SALESPERSONS.NAME											
+'	Outdoor Sales			= 20 chars	= O, M	=								= N/A																
+'	Outdoor Sales Descr.		= 40 chars	= O, M	=								= N/A																
+'Material Master:																																		
+'	Material Key				= 25 chars	= M, M	=								= ORDER_BOOKING.PART											
+'	Material Description		= 40 chars	= O, M	=								= INVENTORY_MSTR.DESCRIPTION									
+'	Leading Manufacturer		= 20 chars	= O, M	=								= PART_XREF_USER.VENDOR -> VENDOR_MASTER.NAME_VENDOR	
+'	Owner Plant				= 20 chars	= O, M	=								= N/A																
+'	Producing Type			= 20 chars	= O, M	=								= N/A																
+'	Country of Origin			= 20 chars	= O, M	=								= N/A																
+'	SOP Year				= 4 chars	= O, O	= YYYY							= N/A																
+'	Innovation Flag			= 20 chars	= O, O	=								= N/A																
+'	Basic Material			= 20 chars	= O, O	=								= N/A																
+'	Customer Mat. Numb.		= 40 chars	= O, O	=								= ORDER_LINES.CUSTOMER_PART									
+'Spare Fields:																																		
+'	SF1						= 20 chars	= O, O	= 								= N/A																
+'	SF2						= 20 chars	= O, O	=								= N/A																
+'	SF3						= 20 chars	= O, O	=								= N/A																
+'	SF4						= 20 chars	= O, O	=								= N/A																
+'	SF5						= 20 chars	= O, O	=								= N/A																
+'Key Figures:																																			
+'	Order Entry Value			= 21 chars	= M, M	=								=
+'	Currency				= 5 chars	= M, M	= ISO 4217 standard				=
+'	Orders Entry Quantity		= 21 chars	= M, M	=								=
+'	Sales Unit				= 3 chars	= M, M	= international ISO standard		=
+'==============================================================================================================================	
+
+Program.Sub.Preflight.Start
+V.Global.sOHDFile.Declare(String)
+V.Global.sTOFile.Declare(String)
+V.Global.sOEFile.Declare(String)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'Author: Bix
+'Date: 10/8/2018
+'GCG_5201_Order_Extracts.g2u
+'This program will export Order Entry to files and then upload them to an FTP server
+F.Intrinsic.Control.Try
+V.Local.sError.Declare(String)
+V.Local.d.Declare(Date)
+
+'Get yesterday's date to write in files
+F.Intrinsic.Date.DateSubtractWorkdays(V.Ambient.Date,1,127,V.Local.d)
+
+F.Intrinsic.Control.CallSub(CheckDirectories)
+'V.Args.sCustomDir added
+F.Intrinsic.Control.CallSub(CreateDTs,"sCompanyCode","0044","sDate",V.Local.d.FormatYYYYMMDD)
+F.Intrinsic.Control.CallSub(CreateFiles,"sCompanyCode","0044","sDate",V.Local.d.FormatYYYYMMDD,"sFileDir",V.Args.sCustomDir)
+F.Intrinsic.Control.CallSub(UploadFilestoFTP,"sFileDir",V.Args.sCustomDir)
+F.Intrinsic.Control.CallSub(Unload,"sError","")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.CheckDirectories.Start
+'Any directories needed will be added here
+F.Intrinsic.Control.Try
+V.Local.sError.Declare(String)
+V.Local.sCustomDir.Declare(String)
+V.Local.bDirExists.Declare(String)
+
+F.Intrinsic.String.Build("{0}\CUSTOM\5021",V.Caller.GlobalDir,V.Local.sCustomDir)
+F.Intrinsic.File.DirExists(V.Local.sCustomDir,V.Local.bDirExists)
+F.Intrinsic.Control.If(V.Local.bDirExists.Not)
+	F.Intrinsic.File.CreateDir(V.Local.sCustomDir)
+F.Intrinsic.Control.EndIf
+'Add V.Args.sCustomDir to return variables
+F.Intrinsic.Variable.AddRV("sCustomDir",V.Local.sCustomDir)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.CheckDirectories.End
+
+Program.Sub.CreateDTs.Start
+'Create DataTables with data from orders
+'V.Args.sCompanyCode; V.Args.sDate (YYYYMMDD)
+V.Local.sError.Declare(String)
+V.Local.sSalespersonError.Declare(String,"***INSIDESIDE SALES ID UNKNOWN***")
+V.Local.sCustomerError.Declare(String,"***CUSTOMER KEY UNKNOWN***")
+V.Local.sXrefError.Declare(String,"***VENDOR PART NOT FOUND***")
+V.Local.sVendorError.Declare(String,"***MANUF ID UNKWN***")
+V.Local.sTemp.Declare(String)
+F.Intrinsic.Control.Try
+
+'get data from DB
+F.ODBC.Connection!con.OpenCompanyConnection
+F.Data.DataTable.CreateFromSQL("dtOrderLines","con","select rtrim(ORDER_NO) as ORDER_NO, rtrim(RECORD_NO) as RECORD_NO, rtrim(CUSTOMER) as CUSTOMER, QTY_BO, rtrim(PART) as PART, rtrim(UM_ORDER) as UM_ORDER, rtrim(DESCRIPTION) as DESCRIPTION, DATE_ITEM_PROM, ITEM_PROMISE_DT, rtrim(CUSTOMER_PART) as CUSTOMER_PART, rtrim(ORDER_CURR_CD) as ORDER_CURR_CD, EXTENSION from V_ORDER_LINES order by ORDER_NO, RECORD_NO;",True)
+F.Data.DataTable.CreateFromSQL("dtOrderHeader","con","select rtrim(ORDER_NO) as ORDER_NO, rtrim(CUSTOMER) as CUSTOMER, rtrim(BRANCH) as BRANCH, rtrim(AREA) as AREA, rtrim(SALESPERSON) as SALESPERSON from V_ORDER_HEADER order by ORDER_NO;",True)
+F.Data.DataTable.CreateFromSQL("dtOrderBillTo","con","select rtrim(ORDER_NO) as ORDER_NO, rtrim(COUNTRY) as COUNTRY, rtrim(CITY) as CITY from V_ORDER_BILL_TO order by ORDER_NO;",True)
+F.Data.DataTable.CreateFromSQL("dtOrderHistLines","con","select rtrim(ORDER_NO) as ORDER_NO, rtrim(ORDER_SUFFIX) as ORDER_SUFFIX, rtrim(ORDER_LINE) as ORDER_LINE, DATE_INVOICE, rtrim(PART) as PART, rtrim(DESCRIPTION) as DESCRIPTION, rtrim(CUSTOMER_PART) as CUSTOMER_PART, QTY_SHIPPED, rtrim(UM) as UM, rtrim(ORDER_CURRENCY) as ORDER_CURRENCY, rtrim(AREA) as AREA, rtrim(BRANCH) as BRANCH, rtrim(SALESPERSON) as SALESPERSON, COST from V_ORDER_HIST_LINE order by ORDER_NO, ORDER_SUFFIX, ORDER_LINE;",True)
+F.Data.DataTable.CreateFromSQL("dtOrderHistHeader","con","select rtrim(ORDER_NO) as ORDER_NO, rtrim(ORDER_SUFFIX) as ORDER_SUFFIX, rtrim(CUSTOMER) as CUSTOMER, rtrim(NAME_CUSTOMER) as NAME_CUSTOMER, rtrim(CITY) as CITY, rtrim(COUNTRY) as COUNTRY from V_ORDER_HIST_HEAD order by ORDER_NO, ORDER_SUFFIX;",True)
+F.Data.DataTable.CreateFromSQL("dtOrderBooking","con","select rtrim(ORDER_NO) as ORDER_NO, rtrim(ORDER_LINE), rtrim(CUSTOMER) as CUSTOMER, rtrim(SALESPERSON) as SALESPERSON, rtrim(PART) as PART, QTY from V_ORDER_BOOKING order by ORDER_NO, ORDER_LINE;",True)
+F.Data.Dictionary.CreateFromSQL("dictSalespersons","con","select rtrim(ID), rtrim(NAME) from SALESPERSONS order by ID;")
+F.Data.Dictionary.CreateFromSQL("dictCustomerMaster","con","select rtrim(CUSTOMER), rtrim(NAME_CUSTOMER) from V_CUSTOMER_MASTER order by CUSTOMER;")
+F.Data.Dictionary.CreateFromSQL("dictXrefPart","con","select rtrim(PART), rtrim(VENDOR) from V_PART_XREF_USER order by PART;")
+F.Data.Dictionary.CreateFromSQL("dictVendorMaster","con","select rtrim(VENDOR), rtrim(NAME_VENDOR) from V_VENDOR_MASTER order by VENDOR;")
+F.ODBC.Connection!con.Close
+
+F.Data.Dictionary.SetDefaultReturn("dictSalespersons",V.Local.sSalespersonError)
+F.Data.Dictionary.SetDefaultReturn("dictCustomerMaster",V.Local.sCustomerError)
+F.Data.Dictionary.SetDefaultReturn("dictXrefPart",V.Local.sXrefError)
+F.Data.Dictionary.SetDefaultReturn("dictVendorMaster",V.Local.sVendorError)
+V.Local.sTemp.Set("")
+F.Intrinsic.Control.If(V.Dictionary.dictSalespersons![V.Local.sTemp],!=,V.Local.sSalespersonError)
+	F.Data.Dictionary.RemoveItem("dictSalespersons",V.Local.sTemp)
+F.Intrinsic.Control.EndIf
+F.Data.Dictionary.AddItem("dictSalespersons",V.Local.sTemp,"")
+F.Intrinsic.Control.If(V.Dictionary.dictCustomerMaster![V.Local.sTemp],!=,V.Local.sCustomerError)
+	F.Data.Dictionary.RemoveItem("dictCustomerMaster",V.Local.sTemp)
+F.Intrinsic.Control.EndIf
+F.Data.Dictionary.AddItem("dictCustomerMaster",V.Local.sTemp,"")
+F.Intrinsic.Control.If(V.Dictionary.dictXrefPart![V.Local.sTemp],!=,V.Local.sXrefError)
+	F.Data.Dictionary.RemoveItem("dictXrefPart",V.Local.sTemp)
+F.Intrinsic.Control.EndIf
+F.Data.Dictionary.AddItem("dictXrefPart",V.Local.sTemp,"")
+F.Intrinsic.Control.If(V.Dictionary.dictVendorMaster![V.Local.sTemp],!=,V.Local.sVendorError)
+	F.Data.Dictionary.RemoveItem("dictVendorMaster",V.Local.sTemp)
+F.Intrinsic.Control.EndIf
+F.Data.Dictionary.AddItem("dictVendorMaster",V.Local.sTemp,"")
+F.Data.Dictionary.AddItem("dictVendorMaster",V.Local.sXrefError,"")
+
+'combine tables to get the OHD DT
+F.Data.Linq.Join("LeftJoin","DataTable","dtOrderLines*!*LINE","DataTable","dtOrderHeader*!*HEAD","LINE.ORDER_NO = HEAD.ORDER_NO","DataTable","dtOrderBillTo*!*BILL","HEAD.ORDER_NO = BILL.ORDER_NO","HEAD.ORDER_NO*!*LINE.RECORD_NO*!*HEAD.CUSTOMER as CustomerKey*!*LINE.QTY_BO as OrdersOnHandQty*!*LINE.PART as MaterialKey*!*LINE.UM_ORDER as SalesUnit*!*LINE.DESCRIPTION as MaterialDescription*!*LINE.DATE_ITEM_PROM*!*LINE.ITEM_PROMISE_DT*!*LINE.CUSTOMER_PART as CustomerMatNumb*!*HEAD.SALESPERSON as InsideSales*!*LINE.ORDER_CURR_CD as Currency*!*LINE.EXTENSION as OrderOnHandValue*!*HEAD.BRANCH as Segment*!*HEAD.AREA as SalesArea*!*BILL.CITY*!*BILL.COUNTRY","LINE.RECORD_NO <> 8000","","HEAD.ORDER_NO ASC, LINE.RECORD_NO ASC","dtOHD",True)
+F.Data.DataTable.AddColumn("dtOHD","InsideSalesDescr","String")
+F.Data.DataTable.FillFromDictionary("dtOHD","dictSalespersons","InsideSales","InsideSalesDescr")
+F.Data.DataTable.AddColumn("dtOHD","CustomerDescription","String")
+F.Data.DataTable.FillFromDictionary("dtOHD","dictCustomerMaster","CustomerKey","CustomerDescription")
+F.Data.DataTable.AddColumn("dtOHD","VENDOR","String")
+F.Data.DataTable.FillFromDictionary("dtOHD","dictXrefPart","MaterialKey","VENDOR")
+F.Data.DataTable.AddColumn("dtOHD","LeadingManufacturer","String")
+F.Data.DataTable.FillFromDictionary("dtOHD","dictVendorMaster","VENDOR","LeadingManufacturer")
+F.Data.DataTable.AddColumn("dtOHD","TransmissionDate","String",V.Args.sDate)
+'convert dates to YYYYMMDD
+F.Data.DataTable.AddExpressionColumn("dtOHD","STRINGDATE1","String","DATE_ITEM_PROM")
+F.Data.DataTable.AddExpressionColumn("dtOHD","GoodsIssueDate","String","IIF(LEN(STRINGDATE1) = 22,SUBSTRING(STRINGDATE1,7,4) + SUBSTRING(STRINGDATE1,1,2) + SUBSTRING(STRINGDATE1,4,2),IIF(LEN(STRINGDATE1) = 21,IIF(SUBSTRING(STRINGDATE1,2,1) = '/',SUBSTRING(STRINGDATE1,6,4) + '0' + SUBSTRING(STRINGDATE1,1,1) + SUBSTRING(STRINGDATE1,3,2),SUBSTRING(STRINGDATE1,6,4) + SUBSTRING(STRINGDATE1,1,2) + '0' + SUBSTRING(STRINGDATE1,4,1)),SUBSTRING(STRINGDATE1,5,4) + '0' + SUBSTRING(STRINGDATE1,1,1) + '0' + SUBSTRING(STRINGDATE1,3,1)))")
+F.Data.DataTable.AddExpressionColumn("dtOHD","STRINGDATE2","String","ITEM_PROMISE_DT")
+F.Data.DataTable.AddExpressionColumn("dtOHD","DeliveryDate","String","IIF(LEN(STRINGDATE2) = 22,SUBSTRING(STRINGDATE2,7,4) + SUBSTRING(STRINGDATE2,1,2) + SUBSTRING(STRINGDATE2,4,2),IIF(LEN(STRINGDATE2) = 21,IIF(SUBSTRING(STRINGDATE2,2,1) = '/',SUBSTRING(STRINGDATE2,6,4) + '0' + SUBSTRING(STRINGDATE2,1,1) + SUBSTRING(STRINGDATE2,3,2),SUBSTRING(STRINGDATE2,6,4) + SUBSTRING(STRINGDATE2,1,2) + '0' + SUBSTRING(STRINGDATE2,4,1)),SUBSTRING(STRINGDATE2,5,4) + '0' + SUBSTRING(STRINGDATE2,1,1) + '0' + SUBSTRING(STRINGDATE2,3,1)))")
+F.Data.DataTable.AddExpressionColumn("dtOHD","BacklogFlag","String","IIF(GoodsIssueDate <= TransmissionDate,'X','')")
+'add fixed values and blank/unknown values
+F.Data.DataTable.AddColumn("dtOHD","CompanyCode","String",V.Args.sCompanyCode)
+F.Data.DataTable.AddColumn("dtOHD","RecordType","String","OH")
+F.Data.DataTable.AddColumn("dtOHD","DateType","String","D")
+F.Data.DataTable.AddColumn("dtOHD","SalesOrganization","String","")
+F.Data.DataTable.AddColumn("dtOHD","Plant","String","")
+F.Data.DataTable.AddColumn("dtOHD","Division","String","")
+F.Data.DataTable.AddColumn("dtOHD","LeadCenter","String","")
+F.Data.DataTable.AddColumn("dtOHD","ParentCustomer","String","")
+F.Data.DataTable.AddColumn("dtOHD","CustomerDivision","String","")
+F.Data.DataTable.AddColumn("dtOHD","SalesChannel","String","")
+F.Data.DataTable.AddColumn("dtOHD","SalesDistrict","String","")
+F.Data.DataTable.AddColumn("dtOHD","Concern","String","")
+F.Data.DataTable.AddColumn("dtOHD","Sector","String","")
+F.Data.DataTable.AddColumn("dtOHD","Application","String","")
+F.Data.DataTable.AddColumn("dtOHD","Region","String","")
+F.Data.DataTable.AddColumn("dtOHD","SalesOffice","String","")
+F.Data.DataTable.AddColumn("dtOHD","OutdoorSales","String","")
+F.Data.DataTable.AddColumn("dtOHD","OutdoorSalesDescr","String","")
+F.Data.DataTable.AddColumn("dtOHD","OwnerPlant","String","")
+F.Data.DataTable.AddColumn("dtOHD","ProducingType","String","")
+F.Data.DataTable.AddColumn("dtOHD","CountryOfOrigin","String","")
+F.Data.DataTable.AddColumn("dtOHD","SOPYear","String","")
+F.Data.DataTable.AddColumn("dtOHD","InnovationFlag","String","")
+F.Data.DataTable.AddColumn("dtOHD","BasicMaterial","String","")
+F.Data.DataTable.AddColumn("dtOHD","SF1","String","")
+F.Data.DataTable.AddColumn("dtOHD","SF2","String","")
+F.Data.DataTable.AddColumn("dtOHD","SF3","String","")
+F.Data.DataTable.AddColumn("dtOHD","SF4","String","")
+F.Data.DataTable.AddColumn("dtOHD","SF5","String","")
+
+'combine tables to get TO DT
+F.Data.Linq.Join("LeftJoin","DataTable","dtOrderHistLines*!*LINE","DataTable","dtOrderHistHeader*!*HEAD","LINE.ORDER_NO = HEAD.ORDER_NO AND LINE.ORDER_SUFFIX = HEAD.ORDER_SUFFIX","HEAD.ORDER_NO*!*HEAD.ORDER_SUFFIX*!*LINE.ORDER_LINE*!*HEAD.CUSTOMER as CustomerKey*!*HEAD.NAME_CUSTOMER as CustomerDescription*!*LINE.AREA as SalesArea*!*LINE.BRANCH as Segment*!*HEAD.COUNTRY*!*HEAD.CITY*!*LINE.SALESPERSON as InsideSales*!*LINE.PART as MaterialKey*!*LINE.Description as MaterialDescription*!*LINE.CUSTOMER_PART as CustomerMatNumb*!*LINE.QTY_SHIPPED as SalesQty*!*LINE.UM as SalesUnit*!*LINE.COST*!*LINE.ORDER_CURRENCY as Currency*!*LINE.DATE_INVOICE","","","HEAD.ORDER_NO ASC, HEAD.ORDER_SUFFIX ASC, LINE.ORDER_LINE ASC","dtTO",True)
+F.Data.DataTable.AddColumn("dtTO","InsideSalesDescr","String")
+F.Data.DataTable.FillFromDictionary("dtTO","dictSalespersons","InsideSales","InsideSalesDescr")
+F.Data.DataTable.AddColumn("dtTO","VENDOR","String")
+F.Data.DataTable.FillFromDictionary("dtTO","dictXrefPart","MaterialKey","VENDOR")
+F.Data.DataTable.AddColumn("dtTO","LeadingManufacturer","String")
+F.Data.DataTable.FillFromDictionary("dtTO","dictVendorMaster","VENDOR","LeadingManufacturer")
+F.Data.DataTable.AddColumn("dtTO","TransmissionDate","String",V.Args.sDate)
+'convert date to YYYYMMDD
+F.Data.DataTable.AddExpressionColumn("dtTO","STRINGDATE","String","DATE_INVOICE")
+F.Data.DataTable.AddExpressionColumn("dtTO","GoodsIssueDate","String","IIF(LEN(STRINGDATE) = 22,SUBSTRING(STRINGDATE,7,4) + SUBSTRING(STRINGDATE,1,2) + SUBSTRING(STRINGDATE,4,2),IIF(LEN(STRINGDATE) = 21,IIF(SUBSTRING(STRINGDATE,2,1) = '/',SUBSTRING(STRINGDATE,6,4) + '0' + SUBSTRING(STRINGDATE,1,1) + SUBSTRING(STRINGDATE,3,2),SUBSTRING(STRINGDATE,6,4) + SUBSTRING(STRINGDATE,1,2) + '0' + SUBSTRING(STRINGDATE,4,1)),SUBSTRING(STRINGDATE,5,4) + '0' + SUBSTRING(STRINGDATE,1,1) + '0' + SUBSTRING(STRINGDATE,3,1)))")
+'add fixed values and blank/unknown values
+F.Data.DataTable.AddColumn("dtTO","CompanyCode","String",V.Args.sCompanyCode)
+F.Data.DataTable.AddColumn("dtTO","RecordType","String","TO")
+F.Data.DataTable.AddColumn("dtTO","DateType","String","D")
+F.Data.DataTable.AddColumn("dtTO","SalesType","String","L")
+F.Data.DataTable.AddColumn("dtTO","SalesOrganization","String","")
+F.Data.DataTable.AddColumn("dtTO","Plant","String","")
+F.Data.DataTable.AddColumn("dtTO","Division","String","")
+F.Data.DataTable.AddColumn("dtTO","Leadcenter","String","")
+F.Data.DataTable.AddColumn("dtTO","ParentCustomer","String","")
+F.Data.DataTable.AddColumn("dtTO","CustomerDivision","String","")
+F.Data.DataTable.AddColumn("dtTO","SalesChannel","String","")
+F.Data.DataTable.AddColumn("dtTO","SalesDistrict","String","")
+F.Data.DataTable.AddColumn("dtTO","Concern","String","")
+F.Data.DataTable.AddColumn("dtTO","Sector","String","")
+F.Data.DataTable.AddColumn("dtTO","Application","String","")
+F.Data.DataTable.AddColumn("dtTO","Region","String","")
+F.Data.DataTable.AddColumn("dtTO","SalesOffice","String","")
+F.Data.DataTable.AddColumn("dtTO","OutdoorSales","String","")
+F.Data.DataTable.AddColumn("dtTO","OutdoorSalesDescr","String","")
+F.Data.DataTable.AddColumn("dtTO","OwnerPlant","String","")
+F.Data.DataTable.AddColumn("dtTO","ProducingType","String","")
+F.Data.DataTable.AddColumn("dtTO","CountryOfOrigin","String","")
+F.Data.DataTable.AddColumn("dtTO","SOPYear","String","")
+F.Data.DataTable.AddColumn("dtTO","InnovationFlag","String","")
+F.Data.DataTable.AddColumn("dtTO","BasicMaterial","String","")
+F.Data.DataTable.AddColumn("dtTO","SF1","String","")
+F.Data.DataTable.AddColumn("dtTO","SF2","String","")
+F.Data.DataTable.AddColumn("dtTO","SF3","String","")
+F.Data.DataTable.AddColumn("dtTO","SF4","String","")
+F.Data.DataTable.AddColumn("dtTO","SF5","String","")
+F.Data.DataTable.AddColumn("dtTO","GrossSales","String","")
+F.Data.DataTable.AddColumn("dtTO","NetSales","String","")
+F.Data.DataTable.AddColumn("dtTO","MaterialCosts","String","")
+
+'combine tables to get OE DT
+'F.Data.Linq.Join("LeftJoin","DataTable","")
+
+'close structures not needed anymore
+F.Data.DataTable.Close("dtOrderLines")
+F.Data.DataTable.Close("dtOrderHeader")
+F.Data.DataTable.Close("dtOrderBillTo")
+F.Data.DataTable.Close("dtOrderHistLines")
+F.Data.DataTable.Close("dtOrderHistHeader")
+F.Data.DataTable.Close("dtOrderBooking")
+F.Data.Dictionary.Close("dictSalespersons")
+F.Data.Dictionary.Close("dictCustomerMaster")
+F.Data.Dictionary.Close("dictXrefPart")
+F.Data.Dictionary.Close("dictVendorMaster")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.CreateDTs.End
+
+Program.Sub.CreateFiles.Start
+'use passed variables to write DTs to files
+'V.Args.sCompanyCode; V.Args.sDate (YYYYMMDD); V.Args.sFileDir
+V.Local.sError.Declare(String)
+V.Local.sFilePath.Declare(String)
+V.Local.sFileContents.Declare(String)
+V.Local.bFileExists.Declare(Boolean)
+V.Local.i.Declare(Long)
+F.Intrinsic.Control.Try
+
+'write OHD file
+F.Intrinsic.String.Build("FSTGFI-OH-D-{0}-{1}.csv",V.Args.sCompanyCode,V.Args.sDate,V.Global.sOHDFile)
+F.Intrinsic.String.Build("{0}\{1}",V.Args.sFileDir,V.Global.sOHDFile,V.Local.sFilePath)
+F.Data.DataView.Create("dtOHD","dvFileOutput",22)
+F.Data.DataView.ToString("dtOHD","dvFileOutput","CompanyCode*!*RecordType*!*TransmissionDate*!*DateType*!*GoodsIssueDate*!*DeliveryDate*!*BacklogFlag*!*SalesOrganization*!*Plant*!*Division*!*Leadcenter*!*CustomerKey*!*CustomerDescription*!*ParentCustomer*!*CustomerDivision*!*SalesChannel*!*SalesArea*!*SalesDistrict*!*Concern*!*Sector*!*Segment*!*Application*!*Country*!*Region*!*City*!*SalesOffice*!*InsideSales*!*InsideSalesDescr*!*OutdoorSales*!*OutdoorSalesDescr*!*MaterialKey*!*MaterialDescription*!*LeadingManufacturer*!*OwnerPlant*!*ProducingType*!*CountryOfOrigin*!*SOPYear*!*InnovationFlag*!*BasicMaterial*!*CustomerMatNumb*!*SF1*!*SF2*!*SF3*!*SF4*!*SF5*!*OrderOnHandValue*!*Currency*!*OrdersOnHandQty*!*SalesUnit",",",V.Ambient.NewLine,V.Local.sFileContents)
+F.Data.DataView.Close("dtOHD","dvFileOutput")
+F.Intrinsic.File.Exists(V.Local.sFilePath,V.Local.bFileExists)
+F.Intrinsic.Control.If(V.Local.bFileExists)
+	F.Intrinsic.String.Build("File : {1}{0}already exists in the local directory. Would you like to overwrite it?",V.Ambient.NewLine,V.Global.sOHDFile,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError,"WARNING: File Already Exists",4,V.Local.i)
+	F.Intrinsic.Control.If(V.Local.i,=,6)
+		F.Intrinsic.File.String2File(V.Local.sFilePath,V.Local.sFileContents)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Else
+	F.Intrinsic.File.String2File(V.Local.sFilePath,V.Local.sFileContents)
+F.Intrinsic.Control.EndIf
+
+'DEBUG
+'
+F.Intrinsic.Control.ExitSub
+'
+'DEBUG
+
+'write TO file
+F.Intrinsic.String.Build("FSTGFI-TO-D-{0}-{1}.csv",V.Args.sCompanyCode,V.Args.sDate,V.Global.sTOFile)
+F.Intrinsic.String.Build("{0}\{1}",V.Args.sFileDir,V.Global.sTOFile,V.Local.sFilePath)
+F.Data.DataView.Create("dtTO","dvFileOutput",22)
+F.Data.DataView.ToString("dtTO","dvFileOutput","CompanyCode*!*RecordType*!*TransmissionDate*!*DateType*!*PostingDate*!*SalesType*!*SalesOrganization*!*Plant*!*Division*!*Leadcenter*!*CustomerKey*!*CustomerDescription*!*ParentCustomer*!*CustomerDivision*!*SalesChannel*!*SalesArea*!*SalesDistrict*!*Concern*!*Sector*!*Segment*!*Application*!*Country*!*Region*!*City*!*SalesOffice*!*InsideSales*!*InsideSalesDescr*!*OutdoorSales*!*OutdoorSalesDescr*!*MaterialKey*!*MaterialDescription*!*LeadingManufacturer*!*OwnerPlant*!*ProducingType*!*CountryOfOrigin*!*SOPYear*!*InnovationFlag*!*BasicMaterial*!*CustomerMatNumb*!*SF1*!*SF2*!*SF3*!*SF4*!*SF5*!*SalesQty*!*SalesUnit*!*GrossSales*!*NetSales*!*MaterialCosts*!*ProcessingCosts*!*Currency",",",V.Ambient.NewLine,V.Local.sFileContents)
+F.Data.DataView.Close("dtTO","dvFileOutput")
+F.Intrinsic.File.Exists(V.Local.sFilePath,V.Local.bFileExists)
+F.Intrinsic.Control.If(V.Local.bFileExists)
+	F.Intrinsic.String.Build("File : {1}{0}already exists in the local directory. Would you like to overwrite it?",V.Ambient.NewLine,V.Global.sTOFile,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError,"WARNING: File Already Exists",4,V.Local.i)
+	F.Intrinsic.Control.If(V.Local.i,=,6)
+		F.Intrinsic.File.String2File(V.Local.sFilePath,V.Local.sFileContents)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Else
+	F.Intrinsic.File.String2File(V.Local.sFilePath,V.Local.sFileContents)
+F.Intrinsic.Control.EndIf
+
+'write OE file
+F.Intrinsic.String.Build("FSTGFI-OE-D-{0}-{1}.csv",V.Args.sCompanyCode,V.Args.sDate,V.Global.sOEFile)
+F.Intrinsic.String.Build("{0}\{1}",V.Args.sFileDir,V.Global.sOEFile,V.Local.sFilePath)
+F.Data.DataView.Create("dtOE","dvFileOutput",22)
+F.Data.DataView.ToString("dtOE","dvFileOutput","CompanyCode*!*RecordType*!*TransmissionDate*!*DateType*!*PostingDate*!*SalesOrganization*!*Plant*!*Division*!*Leadcenter*!*CustomerKey*!*CustomerDescription*!*ParentCustomer*!*CustomerDivision*!*SalesChannel*!*SalesArea*!*SalesDistrict*!*Concern*!*Sector*!*Segment*!*Application*!*Country*!*Region*!*City*!*SalesOffice*!*InsideSales*!*InsideSalesDescr*!*OutdoorSales*!*OutdoorSalesDescr*!*MaterialKey*!*MaterialDescription*!*LeadingManufacturer*!*OwnerPlant*!*ProducingType*!*CountryOfOrigin*!*SOPYear*!*InnovationFlag*!*BasicMaterial*!*CustomerMatNumb*!*SF1*!*SF2*!*SF3*!*SF4*!*SF5*!*OrderEntryValue*!*Currency*!*OrderEntryQty*!*SalesUnit",",",V.Ambient.NewLine,V.Local.sFileContents)
+F.Data.DataView.Close("dtOE","dvFileOutput")
+F.Intrinsic.File.Exists(V.Local.sFilePath,V.Local.bFileExists)
+F.Intrinsic.Control.If(V.Local.bFileExists)
+	F.Intrinsic.String.Build("File : {1}{0}already exists in the local directory. Would you like to overwrite it?",V.Ambient.NewLine,V.Global.sOEFile,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError,"WARNING: File Already Exists",4,V.Local.i)
+	F.Intrinsic.Control.If(V.Local.i,=,6)
+		F.Intrinsic.File.String2File(V.Local.sFilePath,V.Local.sFileContents)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Else
+	F.Intrinsic.File.String2File(V.Local.sFilePath,V.Local.sFileContents)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.CreateFiles.End
+
+Program.Sub.UploadFilestoFTP.Start
+V.Local.sError.Declare(String)
+V.Local.sFTPInfo.Declare(String)
+V.Local.sLocalPath.Declare(String)
+V.Local.bFileExists.Declare(Boolean)
+V.Local.bConnExists.Declare(Boolean)
+V.Local.sSkip.Declare(String,"***SKIP FILE***")
+F.Intrinsic.Control.Try
+
+Function.Intrinsic.Debug.Stop
+F.Intrinsic.String.Build("{0}\GCG_5201_FTPConfig.dat",V.Caller.FilesDir,V.Local.sFTPInfo)
+F.Intrinsic.File.Exists(V.Local.sFTPInfo,V.Local.bFileExists)
+F.Intrinsic.Control.If(V.Local.bFileExists)
+	'Get info from .dat file
+	F.Intrinsic.File.File2String(V.Local.sFTPInfo,V.Local.sFTPInfo)
+	'Split
+	F.Intrinsic.String.Split(V.Local.sFTPInfo,V.Ambient.NewLine,V.Local.sFTPInfo)
+	F.Intrinsic.Control.If(V.Local.sFTPInfo.UBound,>=,3)
+		F.Communication.FTP.SetProperty("User",V.Local.sFTPInfo(0).Trim)
+		F.Communication.FTP.SetProperty("Password",V.Local.sFTPInfo(1).Trim)
+		F.Communication.FTP.SetProperty("remoteHost",V.Local.sFTPInfo(2).Trim)
+		F.Communication.FTP.SetProperty("remotePort",V.Local.sFTPInfo(3).Trim)
+	F.Intrinsic.Control.Else
+	'.dat file is not structured correctly
+		F.Intrinsic.Control.CallSub(Unload,"sError","***UNEXPECTED DAT FILE FORMAT***")
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Else
+'.dat file does not exist
+	F.Intrinsic.Control.CallSub(Unload,"sError","***DAT FILE DOES NOT EXIST***")
+F.Intrinsic.Control.EndIf
+
+'login to FTP server
+F.Communication.FTP.Logon
+
+'check for an active connection
+F.Communication.FTP.ReadProperty("connected",V.Local.bConnExists)
+F.Intrinsic.Control.If(V.Local.bConnExists)
+	'Add event to DirList on FTP
+	F.Intrinsic.Control.AddEventHandler("FTPDirList","ListDir")
+	'Call the DirList to look for file names that would conflict with uploading files to FTP
+	F.Communication.FTP.ListDirectoryLong
+F.Intrinsic.Control.Else
+'did not connect to FTP server correctly
+	F.Intrinsic.Control.CallSub(Unload,"sError","***FTP CONNECTION ERROR***")
+F.Intrinsic.Control.EndIf
+
+'Transfer OHD File
+F.Intrinsic.Control.If(V.Global.sOHDFile,!=,V.Local.sSkip)
+	F.Intrinsic.String.Build("{0}\{1}",V.Args.sFileDir,V.Global.sOHDFile,V.Local.sLocalPath)
+	
+	F.Communication.FTP.SetProperty("LocalFile",V.Local.sLocalPath)
+	F.Communication.FTP.SetProperty("RemoteFile",V.Global.sOHDFile)
+	F.Communication.FTP.SetProperty("TransferMode",2)
+	F.Communication.FTP.Upload
+F.Intrinsic.Control.EndIf
+
+'Transfer TO File
+
+'Transfer OE File
+
+'Close FTP connection
+F.Communication.FTP.Logoff
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.UploadFilestoFTP.End
+
+Program.Sub.ListDir.Start
+'event sub that fires when program tells FTP server to list file contents
+V.Local.sError.Declare(String)
+V.Local.sSkip.Declare(String,"***SKIP FILE***")
+F.Intrinsic.Control.Try
+
+'make sure we are not doing anything for . or .. from the returned file names
+'compare file names to files that will be moved to FTP server
+F.Intrinsic.Control.If(V.Args.FileName,=,".","OR",V.Args.FileName,=,"..")
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.ElseIf(V.Args.FileName,=,V.Global.sOHDFile)
+	F.Intrinsic.String.Build("File : {1}{0}already exists on the FTP server. Would you like to overwrite it?",V.Ambient.NewLine,V.Global.sOHDFile,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError,"WARNING: File Already Exists",4,V.Local.i)
+	F.Intrinsic.Control.If(V.Local.i,=,6)
+		'delete FTP file to overwrite it
+		F.Communication.FTP.DeleteFile(V.Args.FileName)
+	F.Intrinsic.Control.Else
+		'skip overwriting the FTP file
+		V.Global.sOHDFile.Set(V.Local.sSkip)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.ElseIf(V.Args.FileName,=,V.Global.sTOFile)
+	F.Intrinsic.String.Build("File : {1}{0}already exists on the FTP server. Would you like to overwrite it?",V.Ambient.NewLine,V.Global.sTOFile,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError,"WARNING: File Already Exists",4,V.Local.i)
+	F.Intrinsic.Control.If(V.Local.i,=,6)
+		'delete FTP file to overwrite it
+		F.Communication.FTP.DeleteFile(V.Args.FileName)
+	F.Intrinsic.Control.Else
+		'skip overwriting the FTP file
+		V.Global.sTOFile.Set(V.Local.sSkip)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.ElseIf(V.Args.FileName,=,V.Global.sOEFile)
+	F.Intrinsic.String.Build("File : {1}{0}already exists on the FTP server. Would you like to overwrite it?",V.Ambient.NewLine,V.Global.sOEFile,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError,"WARNING: File Already Exists",4,V.Local.i)
+	F.Intrinsic.Control.If(V.Local.i,=,6)
+		'delete FTP file to overwrite it
+		F.Communication.FTP.DeleteFile(V.Args.FileName)
+	F.Intrinsic.Control.Else
+		'skip overwriting the FTP file
+		V.Global.sOEFile.Set(V.Local.sSkip)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.ListDir.End
+
+Program.Sub.Unload.Start
+'Close DTs and see if an error was passed
+V.Local.sError.Declare(String)
+V.Local.sEmailBody.Declare(String)
+V.Local.sTemp.Declare(String)
+V.Local.sTemp1.Declare(String)
+V.Local.sSender.Declare(String)
+V.Local.sRecipient.Declare(String)
+V.Local.iUsrID.Declare(String)
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.DataTable.dtOHD.Exists)
+	F.Data.DataTable.Close("dtOHD")
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.If(V.DataTable.dtTO.Exists)
+	F.Data.DataTable.Close("dtTO")
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.If(V.DataTable.dtOE.Exists)
+	F.Data.DataTable.Close("dtOE")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.SelectCase(V.Args.sError)
+	F.Intrinsic.Control.Case("***DAT FILE DOES NOT EXIST***")
+		F.Intrinsic.String.Build("The Export Program can't find or open the FTP data file. Please inspect it at : {0}{1}\GCG_5201_FTPConfig.dat",V.Ambient.NewLine,V.Caller.FilesDir,V.Local.sEmailBody)
+	F.Intrinsic.Control.Case("***UNEXPECTED DAT FILE FORMAT***")
+		F.Intrinsic.String.Build("The FTP data file was read in and was not in the expected format. Please inspect it at : {0}{1}\GCG_5201_FTPConfig.dat{0}Expected format is:{0}#USERNAME#{0}#PASSWORD#{0}#REMOTEHOST#{0}#REMOTEPORT#",V.Ambient.NewLine,V.Caller.FilesDir,V.Local.sEmailBody)
+	F.Intrinsic.Control.Case("***FTP CONNECTION ERROR***")
+		F.Intrinsic.String.Build("The FTP server could not be reached.{0}Please investigate and see if there is an issue with connecting from a different program.",V.Ambient.NewLine,V.Local.sEmailBody)
+F.Intrinsic.Control.EndSelect
+
+'PLACEHOLDER
+'F.Intrinsic.UI.Msgbox(V.Local.sEmailBody)
+
+F.Intrinsic.Control.If(V.Local.sEmailBody.Length,!=,0)
+	F.Global.Security.GetUserId(V.Caller.User,V.Caller.CompanyCode,V.Local.iUsrId)
+	F.Global.Security.GetFullName(V.Caller.User,V.Local.sTemp)
+	F.Global.Security.GetUserEmail(V.Caller.User,V.Local.sTemp1)
+	F.Intrinsic.String.Build("{0}*!*{1}",V.Local.sTemp1,V.Local.sTemp,V.Local.sSender)
+	V.Local.sTemp.Set("")
+	V.Local.sTemp1.Set("")
+	F.Global.Security.GetGroupEmails("GFE",V.Local.sTemp)
+	'split the emails
+	F.Intrinsic.String.Split(V.Local.sTemp,"*!*",V.Local.sTemp)
+	'put the emails back together
+	F.Intrinsic.String.Join(V.Local.sTemp,"@!@*!*",V.Local.sTemp)
+	'put *!* in the front of the string
+	F.Intrinsic.String.Build("*!*{0}",V.Local.sTemp,V.Local.sRecipient)
+	V.Local.sTemp.Redim(0,0)
+	
+	F.Global.Messaging.QueueMessage(V.Caller.CompanyCode,V.Local.iUsrID,"GCG_5201","GFE Order Extract and Upload - ERROR",V.Local.sSender,V.Local.sRecipient,V.Local.sEmailBody)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.Unload.End
